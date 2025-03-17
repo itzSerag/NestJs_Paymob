@@ -1,0 +1,15 @@
+import { Module } from '@nestjs/common';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { PaymentModule } from './payment/payment.module';
+import { UserModule } from './user/user.module';
+import { AuthModule } from './auth/auth.module';
+import { DatabaseModule } from './common/database/database.module';
+import { ConfigModule } from './common/config/config.module';
+
+@Module({
+  imports: [PaymentModule, UserModule, AuthModule, DatabaseModule, ConfigModule],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
