@@ -4,15 +4,17 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { UserModel } from 'src/user/models/user.schema';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
-
-
-  constructor(protected readonly userRepo: UserRepo, private readonly jwtService: JwtService) { }
+  constructor(
+    private readonly userRepo: UserRepo,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+  ) { }
 
   async validateUser(email: string, password: string) {
-
     const user = await this.userRepo.findOne({ email });
     if (!user) {
       throw new NotFoundException('User not found');
@@ -25,22 +27,36 @@ export class AuthService {
     return user;
   }
 
-
   async signup(credentials: CreateUserDto) {
-    const user = await this.userRepo.create(credentials);
-    return user;
-  }
 
+    // check if user already exists
+    const user = await this.userRepo.findOne({ email: credentials.email });
+    if (user) {
+      throw new NotFoundException('User already exists');
+    }
+
+    // hash the password
+    const hashedPassword = await bcrypt.hash(credentials.password, 10);
+    credentials.password = hashedPassword;
+
+    return await this.userRepo.create(credentials);
+  }
 
   // U can put expire time within the env file
   async generateAccessToken(user: UserModel) {
     const payload = { email: user.email, sub: user._id };
-    return this.jwtService.sign(payload, { expiresIn: '7d' });
+    return this.jwtService.sign(payload, {
+      secret: this.configService.get('JWT_ACCESS_SECRET'),
+      expiresIn: this.configService.get('JWT_ACCESS_EXP')
+    });
   }
 
   async generateRefreshToken(user: UserModel) {
     const payload = { email: user.email, sub: user._id, role: user.role };
-    return this.jwtService.sign(payload, { expiresIn: '1h' });
+    return this.jwtService.sign(payload, {
+      secret: this.configService.get('JWT_REFRESH_SECRET'),
+      expiresIn: this.configService.get('JWT_REFRESH_EXP')
+    });
   }
 
   async verifyRefreshToken(refreshToken: string) {

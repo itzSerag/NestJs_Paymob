@@ -6,8 +6,12 @@ import { UserRepo } from './repository/user.repo';
 import { UserModel, UserSchema } from './models/user.schema';
 
 @Module({
-  imports: [DatabaseModule, DatabaseModule.forFeature([{ name: UserModel.name, schema: UserSchema }])],
+  imports: [
+    DatabaseModule,
+    DatabaseModule.forFeature([{ name: UserModel.name, schema: UserSchema }]),
+  ],
   controllers: [UserController],
   providers: [UserService, UserRepo],
+  exports: [UserService, UserRepo],
 })
-export class UserModule { }
+export class UserModule {}

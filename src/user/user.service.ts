@@ -5,9 +5,7 @@ import { UserRepo } from './repository/user.repo';
 
 @Injectable()
 export class UserService {
-
-  constructor(private readonly userRepo: UserRepo) { }
-
+  constructor(private readonly userRepo: UserRepo) {}
 
   create(createUserDto: CreateUserDto) {
     return this.userRepo.create(createUserDto);
@@ -29,11 +27,6 @@ export class UserService {
   //   // if the user is admin, then delete the user
   //   // the admin cant delte himself
 
-
-
-
   //   return this.userRepo.findOneAndDelete({ _id });
   // }
-
-
 }

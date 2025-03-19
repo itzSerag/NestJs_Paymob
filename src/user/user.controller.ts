@@ -6,7 +6,7 @@ import { UserDto } from './dto/get-user.dto';
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) { }
+  constructor(private readonly userService: UserService) {}
 
   @Post()
   async create(@Body() createUserDto: CreateUserDto) {
@@ -18,7 +18,7 @@ export class UserController {
   async findAll() {
     const users = await this.userService.findAll();
     // filter every user
-    return users.map(user => new UserDto(user));
+    return users.map((user) => new UserDto(user));
   }
 
   @Get(':id')

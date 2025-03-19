@@ -1,15 +1,13 @@
-import { IsEmail, IsEnum, IsMongoId } from "class-validator";
-import { Role } from "../enum/roles.enum";
-
+import { IsEmail, IsEnum, IsMongoId } from 'class-validator';
+import { Role } from '../enum/roles.enum';
 
 export class PayloadDto {
+  @IsEnum(Role)
+  role: Role;
 
-    @IsEnum(Role)
-    role: Role;
+  @IsEmail()
+  email: string;
 
-    @IsEmail()
-    email: string;
-
-    @IsMongoId()
-    sub: string;
+  @IsMongoId()
+  sub: string;
 }

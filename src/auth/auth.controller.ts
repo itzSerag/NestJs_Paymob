@@ -1,18 +1,28 @@
-import { Body, Controller, HttpCode, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { Response, Request } from 'express';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
-import { UserRepo } from 'src/user/repository/user.repo';
+import { UserDto } from 'src/user/dto/get-user.dto';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService, private readonly userRepo: UserRepo) { }
-
+  constructor(private readonly authService: AuthService) { }
 
   @Post('login')
   async login(@Body() credentials: LoginDto, @Res() res: Response) {
-    const user = await this.authService.validateUser(credentials.email, credentials.password);
+    const user = await this.authService.validateUser(
+      credentials.email,
+      credentials.password,
+    );
     const accessToken = this.authService.generateAccessToken(user);
     const refreshToken = this.authService.generateRefreshToken(user);
 
@@ -27,11 +37,11 @@ export class AuthController {
   }
 
   @Post('signup')
-  async signup(@Body() credentials: CreateUserDto, @Res() res: Response) {
-
+  @HttpCode(201)
+  async signup(@Body() credentials: CreateUserDto, @Res({ passthrough: true }) res: Response) {
     const user = await this.authService.signup(credentials);
-    const accessToken = this.authService.generateAccessToken(user);
-    const refreshToken = this.authService.generateRefreshToken(user);
+    const accessToken = await this.authService.generateAccessToken(user);
+    const refreshToken = await this.authService.generateRefreshToken(user);
 
     // store in a cookie named refreshToken
     res.cookie('refreshToken', refreshToken, {
@@ -40,8 +50,10 @@ export class AuthController {
       sameSite: 'strict',
     });
 
-    return { token: accessToken };
-
+    return {
+      token: accessToken,
+      user: new UserDto(user)
+    }
   }
 
   @Post('refresh')
@@ -49,10 +61,9 @@ export class AuthController {
   async refresh(@Req() req: Request, @Res() res: Response) {
     const refreshToken = req.cookies['refreshToken'] || null;
 
-
     // ensure the refresh token is present
     if (!refreshToken) {
-      return res.status(401).send({ message: 'Unauthorized' });
+      throw new UnauthorizedException('No refresh token provided');
     }
 
     // verify the refresh token && return the user if the token is valid
