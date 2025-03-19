@@ -9,7 +9,7 @@ import { CreateUserDto } from 'src/user/dto/create-user.dto';
 export class AuthService {
 
 
-  constructor(private readonly userRepo: UserRepo, private readonly jwtService: JwtService) { }
+  constructor(protected readonly userRepo: UserRepo, private readonly jwtService: JwtService) { }
 
   async validateUser(email: string, password: string) {
 
@@ -43,7 +43,14 @@ export class AuthService {
     return this.jwtService.sign(payload, { expiresIn: '1h' });
   }
 
-  verifyRefreshToken(refreshToken: string) {
-    return this.jwtService.verify(refreshToken);
+  async verifyRefreshToken(refreshToken: string) {
+    const payload = this.jwtService.verify(refreshToken);
+    const user = await this.userRepo.findOne({ _id: payload.sub });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
   }
 }
