@@ -1,12 +1,12 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { AbstractSchema } from "./abstract.schema";
 import { FilterQuery, Model, Types, UpdateQuery } from "mongoose";
+import { AbstractModel } from "./abstract.schema";
 
 
 @Injectable()
-export abstract class AbstractRepo<TSchema extends AbstractSchema> {
+export abstract class AbstractRepo<TSchema extends AbstractModel> {
 
-    private readonly logger = new Logger(AbstractRepo.name)
+    protected readonly logger = new Logger(AbstractRepo.name)
 
     constructor(private readonly model: Model<TSchema>) { }
 
@@ -39,10 +39,10 @@ export abstract class AbstractRepo<TSchema extends AbstractSchema> {
         }
         return document;
 
-         
+
     }
 
-    async findOneAndUpdat(filterQuery: FilterQuery<TSchema>, updateQuery: UpdateQuery<TSchema>): Promise<TSchema | null> {
+    async findOneAndUpdate(filterQuery: FilterQuery<TSchema>, updateQuery: UpdateQuery<TSchema>): Promise<TSchema | null> {
         const document = this.model.findOneAndUpdate(filterQuery, updateQuery, {
             new: true
         }).lean<TSchema>(true)

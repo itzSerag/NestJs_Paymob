@@ -1,26 +1,49 @@
-import { Injectable } from '@nestjs/common';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { UserRepo } from 'src/user/repository/user.repo';
+import * as bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
+import { UserModel } from 'src/user/models/user.schema';
+import { CreateUserDto } from 'src/user/dto/create-user.dto';
 
 @Injectable()
 export class AuthService {
-  create(createAuthDto: CreateAuthDto) {
-    return 'This action adds a new auth';
+
+
+  constructor(private readonly userRepo: UserRepo, private readonly jwtService: JwtService) { }
+
+  async validateUser(email: string, password: string) {
+
+    const user = await this.userRepo.findOne({ email });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    // compare hashed password
+    const isPasswordMatch = await bcrypt.compare(password, user.password); // Compare the password
+    if (!isPasswordMatch) {
+      throw new NotFoundException('Invalid Credentials');
+    }
+    return user;
   }
 
-  findAll() {
-    return `This action returns all auth`;
+
+  async signup(credentials: CreateUserDto) {
+    const user = await this.userRepo.create(credentials);
+    return user;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
+
+  // U can put expire time within the env file
+  async generateAccessToken(user: UserModel) {
+    const payload = { email: user.email, sub: user._id };
+    return this.jwtService.sign(payload, { expiresIn: '7d' });
   }
 
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
+  async generateRefreshToken(user: UserModel) {
+    const payload = { email: user.email, sub: user._id, role: user.role };
+    return this.jwtService.sign(payload, { expiresIn: '1h' });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+  verifyRefreshToken(refreshToken: string) {
+    return this.jwtService.verify(refreshToken);
   }
 }

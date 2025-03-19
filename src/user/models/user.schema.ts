@@ -1,10 +1,9 @@
-import { Prop, Schema } from "@nestjs/mongoose";
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Role } from "src/auth/enum/roles.enum";
-import { AbstractSchema } from "src/common";
+import { AbstractModel } from "src/common";
 
-@Schema()
-export class UserModel extends AbstractSchema {
-
+@Schema({ versionKey: false })
+export class UserModel extends AbstractModel {
     @Prop({ required: true, type: String })
     firstName: string;
 
@@ -17,7 +16,7 @@ export class UserModel extends AbstractSchema {
     @Prop({ required: true, type: String })
     password: string;
 
-    @Prop({ required: true, type: Role })
+    @Prop({ required: true, enum: Role })
     role: Role;
 
     @Prop({ required: false, type: String })
@@ -26,3 +25,7 @@ export class UserModel extends AbstractSchema {
     @Prop({ required: false, type: Boolean, default: false })
     isVerified?: boolean;
 }
+// note schema is the actual mongodb doc structure but 
+// the model is the class that represents the schema to interact with through the app
+
+export const UserSchema = SchemaFactory.createForClass(UserModel);
