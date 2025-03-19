@@ -3,7 +3,7 @@ import { Role } from '../enum/roles.enum';
 
 export class PayloadDto {
   @IsEnum(Role)
-  role: Role;
+  role?: Role;
 
   @IsEmail()
   email: string;

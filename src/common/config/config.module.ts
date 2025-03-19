@@ -17,6 +17,8 @@ import * as Joi from 'joi';
         JWT_REFRESH_SECRET: Joi.string().required(),
         JWT_ACCESS_EXP: Joi.string().required(),
         JWT_REFRESH_EXP: Joi.string().required(),
+        BREVO_API_KEY: Joi.string().required(),
+        EMAIL_FROM: Joi.string().required(),
 
       }),
     }),

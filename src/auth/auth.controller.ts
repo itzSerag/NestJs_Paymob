@@ -18,13 +18,13 @@ export class AuthController {
   constructor(private readonly authService: AuthService) { }
 
   @Post('login')
-  async login(@Body() credentials: LoginDto, @Res() res: Response) {
+  async login(@Body() credentials: LoginDto, @Res({ passthrough: true }) res: Response) {
     const user = await this.authService.validateUser(
       credentials.email,
       credentials.password,
     );
-    const accessToken = this.authService.generateAccessToken(user);
-    const refreshToken = this.authService.generateRefreshToken(user);
+    const accessToken = await this.authService.generateAccessToken(user);
+    const refreshToken = await this.authService.generateRefreshToken(user);
 
     // store in a cookie named refreshToken
     res.cookie('refreshToken', refreshToken, {
@@ -33,7 +33,10 @@ export class AuthController {
       sameSite: 'strict',
     });
 
-    return { token: accessToken };
+    return {
+      token: accessToken,
+      user: new UserDto(user)
+    }
   }
 
   @Post('signup')
@@ -58,10 +61,10 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(200)
-  async refresh(@Req() req: Request, @Res() res: Response) {
-    const refreshToken = req.cookies['refreshToken'] || null;
+  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
 
-    // ensure the refresh token is present
+    const refreshToken = req.cookies?.refreshToken;
+
     if (!refreshToken) {
       throw new UnauthorizedException('No refresh token provided');
     }
@@ -69,8 +72,8 @@ export class AuthController {
     // verify the refresh token && return the user if the token is valid
     const user = await this.authService.verifyRefreshToken(refreshToken);
 
-    const accessToken = this.authService.generateAccessToken(user);
-    const newRefreshToken = this.authService.generateRefreshToken(user);
+    const accessToken = await this.authService.generateAccessToken(user);
+    const newRefreshToken = await this.authService.generateRefreshToken(user);
 
     res.cookie('refreshToken', newRefreshToken, {
       httpOnly: true,

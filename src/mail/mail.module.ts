@@ -4,6 +4,7 @@ import { ConfigModule } from 'src/common';
 
 @Module({
   imports: [ConfigModule],
-  providers: [MailService]
+  providers: [MailService],
+  exports: [MailService],
 })
 export class MailModule { }
