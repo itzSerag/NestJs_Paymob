@@ -6,17 +6,20 @@ import {
   Req,
   Res,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { Response, Request } from 'express';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
 import { UserDto } from 'src/user/dto/get-user.dto';
+import { Public } from './decorators/public.decorator';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) { }
 
+  @Public()
   @Post('login')
   async login(@Body() credentials: LoginDto, @Res({ passthrough: true }) res: Response) {
     const user = await this.authService.validateUser(
@@ -39,6 +42,7 @@ export class AuthController {
     }
   }
 
+  @Public()
   @Post('signup')
   @HttpCode(201)
   async signup(@Body() credentials: CreateUserDto, @Res({ passthrough: true }) res: Response) {
@@ -59,6 +63,8 @@ export class AuthController {
     }
   }
 
+
+  @UseGuards()
   @Post('refresh')
   @HttpCode(200)
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
