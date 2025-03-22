@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { UserRepo } from 'src/user/repository/user.repo';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
@@ -54,7 +54,7 @@ export class AuthService {
 
   // U can put expire time within the env file
   async generateAccessToken(user: UserModel) {
-    const payload: PayloadDto = { email: user.email, sub: user._id.toString(), role: user.role };
+    const payload: PayloadDto = { email: user.email, sub: user._id.toString(), role: user.role, isVerified: user.isVerified };
     return this.jwtService.sign(payload, {
       secret: this.configService.get('JWT_ACCESS_SECRET'),
       expiresIn: this.configService.get('JWT_ACCESS_EXP')
@@ -62,7 +62,7 @@ export class AuthService {
   }
 
   async generateRefreshToken(user: UserModel) {
-    const payload: PayloadDto = { email: user.email, sub: user._id.toString() };
+    const payload: PayloadDto = { email: user.email, sub: user._id.toString(), isVerified: user.isVerified };
     return this.jwtService.sign(payload, {
       secret: this.configService.get('JWT_REFRESH_SECRET'),
       expiresIn: this.configService.get('JWT_REFRESH_EXP')
@@ -71,8 +71,16 @@ export class AuthService {
 
   async verifyRefreshToken(refreshToken: string) {
 
-    const payload = this.jwtService.verify(refreshToken, { secret: this.configService.get('JWT_ACCESS_SECRET') });
-    const user = await this.userRepo.findOne({ _id: payload.sub });
+    let user: UserModel;
+
+    try {
+      const payload: PayloadDto = this.jwtService.verify(refreshToken, { secret: this.configService.get('JWT_REFRESH_SECRET') });
+      user = await this.userRepo.findOne({ _id: payload.sub });
+
+    } catch (err) {
+      this.logger.error(err)
+      throw new ForbiddenException("Access Denied or Invalid Sign")
+    }
 
     if (!user) {
       throw new NotFoundException('User not found');

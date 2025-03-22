@@ -11,6 +11,15 @@ export class RolesGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
+
+    // if this route is public then return true
+    if (this.reflector.getAllAndOverride<boolean>('isPublic', [
+      context.getHandler(),
+      context.getClass(),
+    ])) {
+      return true;
+    }
+
     if (!user) {
       return false; // User is not authenticated
     }
