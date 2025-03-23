@@ -19,8 +19,10 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
         // iff this route is public then return true
         if (isPublic) {
-            return true;
+            return isPublic;
         }
+
         return super.canActivate(context); // Runs JWT validation
+
     }
 }

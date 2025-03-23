@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
 @Injectable()
@@ -11,8 +11,7 @@ export class RolesGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
-
-    // if this route is public then return true
+    // Check if the route is public
     if (this.reflector.getAllAndOverride<boolean>('isPublic', [
       context.getHandler(),
       context.getClass(),
@@ -20,8 +19,9 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
+    // If the user is not authenticated, throw UnauthorizedException
     if (!user) {
-      return false; // User is not authenticated
+      throw new UnauthorizedException('User is not authenticated');
     }
 
     // If no specific roles are required, allow any authenticated user
@@ -29,7 +29,11 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    // Check if user has one of the required roles
-    return requiredRoles.includes(user.role);
+    // If the user does not have the required role, throw ForbiddenException
+    if (!requiredRoles.includes(user.role)) {
+      throw new ForbiddenException('User does not have the required role');
+    }
+
+    return true;
   }
 }

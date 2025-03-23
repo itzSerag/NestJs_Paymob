@@ -1,13 +1,15 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as Brevo from '@getbrevo/brevo';
 import { UserModel } from 'src/user/models/user.schema';
+import * as bcrypt from 'bcrypt'
+import { OtpRepo } from './repository/otp.repo';
 
 @Injectable()
 export class MailService {
     private brevoClient: Brevo.TransactionalEmailsApi;
 
-    constructor(private configService: ConfigService) {
+    constructor(private configService: ConfigService, private readonly otpRepo: OtpRepo) {
         const apiKey = this.configService.get<string>('BREVO_API_KEY');
         this.brevoClient = new Brevo.TransactionalEmailsApi();
         this.brevoClient.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, apiKey);
@@ -15,9 +17,7 @@ export class MailService {
 
     private readonly logger = new Logger(MailService.name);
 
-    private verificationEmailTemplate(): string {
-
-        const otp = this.generateOTP().toString();
+    private verificationEmailTemplate(otp: string): string {
 
         return `
         <!DOCTYPE html>
@@ -57,12 +57,35 @@ export class MailService {
         `;
     }
 
+    private resetPasswordEmailTemplate(otp: string): string {
+
+
+        return `
+        <h1>Password Reset</h1>
+        <p>Your OTP to reset your password is: <strong>${otp}</strong></p>
+        <p>This code will expire in 10 minutes. Do not share this code with anyone.</p>
+        `;
+    }
+
+
+
     async sendVerificationEmail(user: UserModel) {
+
+        // save the otp in the db
+        const otp = this.generateOTP();
+        const hashedOtp = await bcrypt.hash(otp, 10);
+        try {
+            await this.otpRepo.saveOtp(user.email, hashedOtp)
+        } catch (err) {
+            this.logger.error('Cant Save Otp email' + err)
+            throw new NotFoundException("Cant send Confirmation email")
+        }
+
         const msg = {
             to: [{ email: user.email }],
             sender: { email: this.configService.get<string>('EMAIL_FROM') },
             subject: 'Verify your email - NestJS Payment Project',
-            htmlContent: this.verificationEmailTemplate(),
+            htmlContent: this.verificationEmailTemplate(otp),
         };
 
         try {
@@ -73,24 +96,26 @@ export class MailService {
         }
     }
 
-    private resetPasswordEmailTemplate(): string {
 
-        const otp = this.generateOTP().toString();
+    async sendResetOtpEmail(user: UserModel) {
 
-        return `
-        <h1>Password Reset</h1>
-        <p>Your OTP to reset your password is: <strong>${otp}</strong></p>
-        <p>This code will expire in 10 minutes. Do not share this code with anyone.</p>
-        `;
-    }
 
-    async sendResetPasswordEmail(user: UserModel) {
+        // save the otp in the db
+        const otp = this.generateOTP();
+        const hashedOtp = await bcrypt.hash(otp, 10);
+        try {
+            await this.otpRepo.saveOtp(String(user._id), hashedOtp)
+        } catch (err) {
+            this.logger.error('Cant Save Otp email' + err)
+            throw new NotFoundException("Cant send Confirmation email")
+        }
+
 
         const msg = {
             to: [{ email: user.email }],
             sender: { email: this.configService.get<string>('EMAIL_FROM') },
-            subject: 'Reset your password - Shatabha',
-            htmlContent: this.resetPasswordEmailTemplate(),
+            subject: 'your OTP reconfirmation',
+            htmlContent: this.resetPasswordEmailTemplate(otp),
         };
 
         try {
@@ -105,7 +130,7 @@ export class MailService {
 
 
     private generateOTP() {
-        // Generate a 6 digit OTP
-        return Math.floor(100000 + Math.random() * 900000);
+        // Generate a 6 digit OTP string
+        return Math.floor(100000 + Math.random() * 900000).toString();
     }
 }

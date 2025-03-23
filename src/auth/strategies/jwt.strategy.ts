@@ -3,10 +3,14 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { PayloadDto } from '../dto/payload.dto';
+import { UserRepo } from 'src/user/repository/user.repo';
+import { UserModel } from 'src/user/models/user.schema';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
-    constructor(private configService: ConfigService) {
+    constructor(private readonly configService: ConfigService,
+        private readonly userRepo: UserRepo
+    ) {
         super({
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
             ignoreExpiration: false,
@@ -21,6 +25,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
             throw new UnauthorizedException('Invalid token');
         }
 
-        return { id: payload.sub, email: payload.email, role: payload.role };
+        const user: UserModel = await this.userRepo.findOne({ _id: payload.sub })
+        return user;
     }
 }

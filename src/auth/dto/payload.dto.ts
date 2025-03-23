@@ -1,4 +1,4 @@
-import { IsBoolean, IsEmail, IsEnum, IsMongoId } from 'class-validator';
+import { IsEmail, IsEnum, IsMongoId } from 'class-validator';
 import { Role } from '../enum/roles.enum';
 
 export class PayloadDto {
@@ -10,7 +10,4 @@ export class PayloadDto {
 
   @IsMongoId()
   sub: string;
-
-  @IsBoolean()
-  isVerified?: boolean;
 }
